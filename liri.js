@@ -32,104 +32,80 @@ inquirer
     ])
     .then(function (inquirerResponse) {
         // console.log(inquirerResponse);
-        processCommand(inquirerResponse.command);
+        var choices = {
+            "concert-this": {
+                message: "What is the name of the artist?",
+                name: "artist",
+                function: function (artist) {
+                    concertThis(artist);
+                }
+            },
+            "spotify-this-song": {
+                message: "What is the name of the song?",
+                name: "songName",
+                function: function (songName) {
+                    spotifyThisSong(songName);
+                }
+            },
+            "movie-this": {
+                message: "What is the name of the movie?",
+                name: "movieName",
+                function: function (movieName) {
+                    movieThis(movieName);
+                }
+            }
+        };
+        // console.log(choices[inquirerResponse.command].message);
+        // console.log(choices[inquirerResponse.command].name);
+
+        switch (inquirerResponse.command) {
+            case "concert-this":
+            case "spotify-this-song":
+            case "movie-this":
+                inquirer
+                    .prompt([
+                        {
+                            type: "input",
+                            message: choices[inquirerResponse.command].message,
+                            name: choices[inquirerResponse.command].name
+                        }
+                    ])
+                    .then(function (response) {
+                        // console.log(response);
+                        // console.log(response[choices[inquirerResponse.command].name]);
+                        choices[inquirerResponse.command].function(response[choices[inquirerResponse.command].name]);
+                    });
+                break;
+            case "do-what-it-says":
+                fs = require("fs");
+                fs.readFile("random.txt", "utf8", function (err, data) {
+                    if (err) {
+                        return console.log(err);
+                    };
+
+                    // console.log(data);
+                    var dataArr = data.split(",");
+                    // console.log(dataArr);
+
+                    var command = dataArr[0];
+                    var name = dataArr[1].replace(/\"/g, " ").trim();
+
+                    choices[command].function(name);
+                });
+                break;
+        };
     });
 
-function processCommand(command) {
-    switch (command) {
-        case "concert-this":
-            inquirer
-                .prompt([
-                    {
-                        type: "input",
-                        message: "What is the name of the artist?",
-                        name: "artist"
-                    }
-                ])
-                .then(function (response) {
-                    // console.log(response);
-                    
-                    if(response.artist !== "") {
-                        concertThis(response.artist);
-                    } else {
-                        console.log("There is no artist's name input.");
-                        logFile("\nconcert-this ");
-                        logFile("\nThere is no artist's name input");
-                    };
-
-                });
-            break;
-        case "spotify-this-song":
-            inquirer
-                .prompt([
-                    {
-                        type: "input",
-                        message: "What is the name of the song?",
-                        name: "songName"
-                    }
-                ])
-                .then(function (response) {
-                    // console.log(response);
-
-                    if (response.songName !== "") {
-                        spotifyThisSong(response.songName);
-                    } else {
-                        spotifyThisSong("The Sign");
-                    };
-                });
-            break;
-        case "movie-this":
-            inquirer
-                .prompt([
-                    {
-                        type: "input",
-                        message: "What is the name of the movie?",
-                        name: "movieName"
-                    }
-                ])
-                .then(function (response) {
-                    // console.log(response);
-
-                    if (response.movieName !== "") {
-                        movieThis(response.movieName);
-                    } else {
-                        movieThis("Mr. Nobody");
-                    };
-                });
-            break;
-        case "do-what-it-says":
-            fs = require("fs");
-            fs.readFile("random.txt", "utf8", function (err, data) {
-                if (err) {
-                    return console.log(err);
-                };
-
-                // console.log(data);
-                var dataArr = data.split(",");
-                // console.log(dataArr);
-
-                var command = dataArr[0];
-                var name = dataArr[1].replace(/\"/g, " ").trim();
-
-                switch (command) {
-                    case "concert-this":
-                        concertThis(name);
-                        break;
-                    case "spotify-this-song":
-                        spotifyThisSong(name);
-                        break;
-                    case "movie-this":
-                        movieThis(name);
-                        break;
-                };
-            });
-            break;
-    };
-
-};
 
 function concertThis(artist) {
     // console.log(artist);
+    if (artist === "") {
+        console.log("There is no artist's name input.");
+        logFile("\nconcert-this ");
+        logFile("\nThere is no artist's name input");
+        return;
+    };
+
     logFile("\nconcert-this " + artist + "\n");
 
     var queryURL = "https://rest.bandsintown.com/artists/" + artist + "/events?app_id=codingbootcamp&date=upcoming";
@@ -141,19 +117,21 @@ function concertThis(artist) {
             logFile("Upcoming concerts for " + artist + ":");
 
             for (prop in bandsintownResponse.data) {
-                var venueCity = bandsintownResponse.data[prop].venue.city;
-                var venueRegion = bandsintownResponse.data[prop].venue.region;
-                var venueName = bandsintownResponse.data[prop].venue.name;
+                var dataObj = bandsintownResponse.data[prop];
                 // moment.HTML5_FMT.DATETIME_LOCAL_SECONDS: YYYY-MM-DDTHH:mm:ss
-                var convertedDate = moment(bandsintownResponse.data[prop].datetime, moment.HTML5_FMT.DATETIME_LOCAL_SECONDS);
-                console.log(venueCity + "," + venueRegion + " at " + venueName + " " + convertedDate.format("MM/DD/YYYY"));
-                logFile(venueCity + "," + venueRegion + " at " + venueName + " " + convertedDate.format("MM/DD/YYYY") + "\n");
+                var convertedDate = moment(dataObj.datetime, moment.HTML5_FMT.DATETIME_LOCAL_SECONDS);
+
+                var logData = dataObj.venue.city + "," + dataObj.venue.region + " at " + dataObj.venue.name + " " + convertedDate.format("MM/DD/YYYY");
+                console.log(logData);
+                logFile(logData + "\n");
             };
         }
     );
 };
 
 function movieThis(movieName) {
+    if (movieName === "") movieName = "Mr. Nobody";
+
     logFile("\nmovie-this " + movieName + "\n");
 
     var queryUrl = "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=trilogy";
@@ -165,30 +143,27 @@ function movieThis(movieName) {
             //     console.log(prop + ": " + omdbResponse.data[prop]);
             // };
 
-            var title = omdbResponse.data.Title;
-            var year = omdbResponse.data.Year;
-            var ratingIMDB = omdbResponse.data.imdbRating;
-            var ratingRottenTomatoes = omdbResponse.data.Ratings[1].Value;
-            var country = omdbResponse.data.Country;
-            var language = omdbResponse.data.Language;
-            var plot = omdbResponse.data.Plot;
-            var actors = omdbResponse.data.Actors;
+            var dataObj = omdbResponse.data;
+            var logData = [
+                "Title: " + dataObj.Title,
+                "Year: " + dataObj.Year,
+                "IMDB Rating: " + dataObj.imdbRating,
+                "Country: " + dataObj.Country,
+                "Language: " + dataObj.Language,
+                "Plot: " + dataObj.Plot,
+                "Actors: " + dataObj.Actors,
+                "Rotten Tomatoes Rating: " + dataObj.Ratings[1].Value + "\n"
+            ].join("\n");
 
-            console.log("Title: " + title);
-            console.log("Year: " + year);
-            console.log("IMDB Rating: " + ratingIMDB);
-            console.log("Country: " + country);
-            console.log("Language: " + language);
-            console.log("Plot: " + plot);
-            console.log("Actors: " + actors);
-            console.log("Rotten Tomatoes Rating: " + ratingRottenTomatoes);
-
-            logFile("Title: " + title + "\nYear: " + year + "\nIMDB Rating: " + ratingIMDB + "\nCountry: " + country + "\nLanguage: " + language + "\nPlot: " + plot + "\nActors: " + actors + "\nRotten Tomatoes Rating: " + ratingRottenTomatoes + "\n");
+            console.log(logData);
+            logFile(logData);
         }
     );
 
 };
+
 function spotifyThisSong(songName) {
+    if (songName === "") songName = "The Sign";
     console.log(songName);
     logFile("\nspotify-this-song " + songName + "\n");
 
@@ -199,24 +174,24 @@ function spotifyThisSong(songName) {
         }
 
         for (var i = 0; i < data.tracks.items.length; i++) {
-            var artist = data.tracks.items[i].album.artists[0].name;
-            var songName = data.tracks.items[i].name;
-            var previewUrl = String(data.tracks.items[i]["preview_url"]);
-            var albumName = data.tracks.items[i].album.name;
-            console.log(i);
-            console.log("artist(s): " + artist);
-            console.log("song name: " + songName);
-            console.log("preview song: " + previewUrl);
-            console.log("album: " + albumName);
-            console.log("------------------------");
+            var dataObj = data.tracks.items[i];
+            var logData = [
+                i,
+                "artist(s): " + dataObj.album.artists[0].name,
+                "song name: " + dataObj.name,
+                "preview song: " + String(dataObj["preview_url"]),
+                "album: " + dataObj.album.name,
+                "------------------------\n"
+            ].join("\n");
 
-            logFile(i + "\nartist(s): " + artist +"\nsong name: " + songName +"\npreview song: " + previewUrl+"\nalbum: " + albumName + "\n------------------------\n");
+            console.log(logData);
+            logFile(logData);
         };
     });
 };
 
 function logFile(data) {
-    fs.appendFile("./log.txt", data, function(err) {
-        if (err) console.log(err);
+    fs.appendFile("./log.txt", data, function (err) {
+        if (err) return console.log(err);
     });
 };
