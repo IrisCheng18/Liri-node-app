@@ -77,7 +77,6 @@ inquirer
                     });
                 break;
             case "do-what-it-says":
-                fs = require("fs");
                 fs.readFile("random.txt", "utf8", function (err, data) {
                     if (err) {
                         return console.log(err);
